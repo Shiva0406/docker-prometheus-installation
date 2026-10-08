@@ -1,0 +1,204 @@
+Your flow should be:
+--------------------------------------------
+EC2 Ubuntu
+   │
+   ├── Install Docker
+   ├── Install Kind
+   ├── Install kubectl
+   │
+   ↓
+Create Kind Cluster
+   │
+   ├── Control Plane
+   ├── Worker 1
+   └── Worker 2
+   │
+   ↓
+Deploy NGINX
+   │
+   ↓
+NGINX Pod
+
+------------------------------------------------
+
+Step 1 — Go to your project directory
+
+cd ~/k8s-kind
+
+-------------------------------------------------
+
+Step 2 — Install the tools
+
+chmod +x install-kind.sh
+./install-kind.sh
+
+-------------------------------------------------
+After installation, activate the Docker group:
+
+newgrp docker
+
+Check Docker:
+
+docker ps
+
+---------------------------------------------------
+
+Step 3 — Create the Kind cluster
+
+Make sure these files are present:
+
+ls
+
+You should have:
+-----------------
+kind-docker-kubectl-install.sh
+create-cluster.sh
+kind-config.yaml
+install-nginx.sh
+----------------------------------------------
+Then:
+
+chmod +x create-cluster.sh
+./create-cluster.sh
+
+Check:
+
+kind get clusters
+
+Expected:
+
+tws-cluster
+
+Then:
+
+kubectl get nodes
+
+Expected:
+
+NAME                       STATUS   ROLES
+tws-cluster-control-plane  Ready    control-plane
+tws-cluster-worker         Ready    <none>
+tws-cluster-worker2        Ready    <none>
+
+--------------------------------------------------------------------------------------------
+Step 4 — Deploy NGINX
+
+Now run:
+
+./install-nginx.sh
+
+Or directly:
+
+kubectl create deployment nginx --image=nginx
+
+Then:
+
+kubectl get pods
+
+You should eventually see:
+
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-xxxxxxxxxx         1/1     Running   0          ...
+
+-----------------------------------------------------------------------------------
+
+Step 5 — Expose NGINX
+
+kubectl expose deployment nginx \
+  --type=NodePort \
+  --port=80 \
+  --target-port=80
+
+Check:
+
+kubectl get svc nginx
+
+If the NodePort is not 30080, you can set it to 30080:
+
+kubectl patch svc nginx \
+  -p '{"spec":{"ports":[{"port":80,"targetPort":80,"nodePort":30080}]}}'
+
+------------------------------------------------------------------------
+
+Then your traffic path is:
+
+Browser
+   │
+   │ :8080
+   ↓
+EC2 Ubuntu
+   │
+   │ 8080 → 30080
+   ↓
+Kind Control Plane
+   │
+   │ NodePort 30080
+   ↓
+NGINX Service
+   │
+   ↓
+NGINX Pod :80
+
+So finally:
+
+http://<EC2-PUBLIC-IP>:8080
+
+Important: your EC2 Security Group must allow TCP 8080.
+
+
+The key issue was simply that you tried to deploy NGINX before creating the Kind cluster.
+--------------------------------------------------------------------------------------------------------
+
+
+To install Helm follow below steps:
+
+1.chmod +x install-Helm.sh
+2. ./install-Helm.sh
+
+check : helm version
+
+----------------------------------------------------------------------------
+
+
+
+To install ArgoCD  follow below steps:
+
+Paste the script, save, then:
+
+chmod +x install-argocd.sh
+
+Execute:
+
+./install-argocd.sh
+
+
+Expected flow
+./install-argocd.sh
+        |
+        +---- Check kubectl
+        |
+        +---- Check Kubernetes cluster
+        |
+        +---- Create argocd namespace
+        |
+        +---- Install Argo CD
+        |
+        +---- Wait for argocd-server
+        |
+        +---- Show Pods
+        |
+        +---- Show Services
+        |
+        +---- Show admin password
+        |
+        +---- Show access commands
+
+After it finishes:
+
+kubectl get pods -n argocd
+
+Then:
+
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+=====================================================================================================================
