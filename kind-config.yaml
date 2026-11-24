@@ -5,6 +5,10 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 
+networking:
+  apiServerAddress: "172.31.42.201" 
+  # Change this to your EC2 private IP (run "hostname -I" to check or from your EC2 dashboard)
+  apiServerPort: 33893
 # Cluster name
 name: tws-cluster
 
